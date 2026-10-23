@@ -56,13 +56,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _weather = data;
         _loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'موسم کا تازہ ڈیٹا نہیں مل سکا۔ انٹرنیٹ چیک کرکے دوبارہ کوشش کریں۔';
-        _loading = false;
-      });
-    }
+  } catch (e, stackTrace) {
+    debugPrint('AASMAN WEATHER ERROR: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    if (!mounted) return;
+    setState(() {
+      _error = 'موسم کی خرابی: $e';
+      _loading = false;
+    });
+  }
   }
 
   @override
