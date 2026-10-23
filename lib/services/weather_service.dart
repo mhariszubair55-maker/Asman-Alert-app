@@ -3,10 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/weather_data.dart';
 
 class WeatherService {
-  static const _timeout = Duration(seconds: 18);
+  static const _timeout = Duration(seconds: 20);
 
-  // Open-Meteo provides forecast data without an API key for eligible use.
-  // Check its current terms and attribution requirements before public/commercial release.
   Future<WeatherData> getWeather({
     required String location,
     required double latitude,
@@ -17,12 +15,13 @@ class WeatherService {
       'longitude': longitude.toString(),
       'current': 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m',
       'hourly': 'temperature_2m,precipitation_probability,precipitation,weather_code',
-      'daily': 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum',
-      'forecast_days': '2',
+      'daily': 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum',
+      'forecast_days': '7',
       'timezone': 'Asia/Karachi',
     });
 
     final response = await http.get(uri).timeout(_timeout);
+
     if (response.statusCode != 200) {
       throw Exception('موسم کا ڈیٹا حاصل نہیں ہو سکا (${response.statusCode})');
     }
@@ -39,8 +38,11 @@ class WeatherService {
     final codes = (hourly['weather_code'] as List).cast<num>();
 
     final now = DateTime.parse(current['time'] as String);
-    int startIndex = times.indexWhere((t) => !DateTime.parse(t).isBefore(now));
+    int startIndex = times.indexWhere(
+      (t) => !DateTime.parse(t).isBefore(now),
+    );
     if (startIndex < 0) startIndex = 0;
+
     final hours = <HourlyWeather>[];
     for (int i = startIndex; i < times.length && hours.length < 12; i++) {
       hours.add(HourlyWeather(
@@ -52,10 +54,25 @@ class WeatherService {
       ));
     }
 
+    final dates = (daily['time'] as List).cast<String>();
     final dailyMax = (daily['temperature_2m_max'] as List).cast<num>();
     final dailyMin = (daily['temperature_2m_min'] as List).cast<num>();
-    final dailyRainChance = (daily['precipitation_probability_max'] as List).cast<num>();
+    final dailyRainChance =
+        (daily['precipitation_probability_max'] as List).cast<num>();
     final dailyRain = (daily['precipitation_sum'] as List).cast<num>();
+    final dailyCodes = (daily['weather_code'] as List).cast<num>();
+
+    final forecast = <DailyWeather>[];
+    for (int i = 0; i < dates.length; i++) {
+      forecast.add(DailyWeather(
+        date: DateTime.parse(dates[i]),
+        high: dailyMax[i].toDouble(),
+        low: dailyMin[i].toDouble(),
+        rainChance: dailyRainChance[i].toInt(),
+        precipitationMm: dailyRain[i].toDouble(),
+        weatherCode: dailyCodes[i].toInt(),
+      ));
+    }
 
     return WeatherData(
       location: location,
@@ -71,9 +88,12 @@ class WeatherService {
       windDirection: (current['wind_direction_10m'] as num).toInt(),
       humidity: (current['relative_humidity_2m'] as num).toInt(),
       cloudCover: (current['cloud_cover'] as num).toInt(),
-      condition: weatherDescription((current['weather_code'] as num).toInt()),
+      condition: weatherDescription(
+        (current['weather_code'] as num).toInt(),
+      ),
       updatedAt: now,
       nextHours: hours,
+      sevenDayForecast: forecast,
     );
   }
 
@@ -92,7 +112,10 @@ class WeatherService {
   }
 
   static String windDirectionText(int degrees) {
-    const directions = ['شمال', 'شمال مشرق', 'مشرق', 'جنوب مشرق', 'جنوب', 'جنوب مغرب', 'مغرب', 'شمال مغرب'];
+    const directions = [
+      'شمال', 'شمال مشرق', 'مشرق', 'جنوب مشرق',
+      'جنوب', 'جنوب مغرب', 'مغرب', 'شمال مغرب'
+    ];
     return directions[((degrees % 360) / 45).round() % 8];
   }
 }

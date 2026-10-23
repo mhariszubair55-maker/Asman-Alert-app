@@ -15,6 +15,7 @@ class WeatherData {
   final String condition;
   final DateTime updatedAt;
   final List<HourlyWeather> nextHours;
+  final List<DailyWeather> sevenDayForecast;
 
   const WeatherData({
     required this.location,
@@ -33,6 +34,7 @@ class WeatherData {
     required this.condition,
     required this.updatedAt,
     required this.nextHours,
+    required this.sevenDayForecast,
   });
 }
 
@@ -46,6 +48,24 @@ class HourlyWeather {
   const HourlyWeather({
     required this.time,
     required this.temperature,
+    required this.rainChance,
+    required this.precipitationMm,
+    required this.weatherCode,
+  });
+}
+
+class DailyWeather {
+  final DateTime date;
+  final double high;
+  final double low;
+  final int rainChance;
+  final double precipitationMm;
+  final int weatherCode;
+
+  const DailyWeather({
+    required this.date,
+    required this.high,
+    required this.low,
     required this.rainChance,
     required this.precipitationMm,
     required this.weatherCode,
